@@ -1,0 +1,61 @@
+{
+  "app": {
+    "env": "dry-run",
+    "timezone": "Asia/Seoul",
+    "log_level": "INFO",
+    "database_path": "data/turtle_invest.db"
+  },
+  "broker": {
+    "provider": "kis",
+    "mode": "paper",
+    "base_url": "https://openapivts.koreainvestment.com:29443",
+    "account_number": "",
+    "account_product_code": "01",
+    "app_key_env": "KIS_APP_KEY",
+    "app_secret_env": "KIS_APP_SECRET",
+    "token_cache_path": "data/kis_token.json"
+  },
+  "telegram": {
+    "bot_token_env": "TELEGRAM_BOT_TOKEN",
+    "chat_id_env": "TELEGRAM_CHAT_ID"
+  },
+  "strategy": {
+    "risk_per_trade": 0.01,
+    "atr_period": 20,
+    "entry_breakout_days": 20,
+    "exit_breakout_days": 10,
+    "stop_loss_atr_multiple": 2.0,
+    "pyramid_atr_step": 0.5,
+    "max_units_per_symbol": 4,
+    "universe_size": 10,
+    "universe_refresh": "yearly",
+    "max_new_position_pct": 0.15,
+    "max_symbol_position_pct": 0.25,
+    "max_equity_exposure_pct": 0.95,
+    "max_symbol_stop_risk_pct": 0.03,
+    "max_total_stop_risk_pct": 0.06,
+    "symbols": ["NVDA", "AAPL", "GOOGL", "MSFT", "AMZN", "META", "AVGO", "TSLA", "BRK/B", "LLY"],
+    "exchange_by_symbol": {
+      "NVDA": "NAS",
+      "AAPL": "NAS",
+      "GOOGL": "NAS",
+      "MSFT": "NAS",
+      "AMZN": "NAS",
+      "META": "NAS",
+      "AVGO": "NAS",
+      "TSLA": "NAS",
+      "BRK/B": "NYS",
+      "LLY": "NYS"
+    }
+  },
+  "cash": {
+    "parking_etfs": ["SGOV", "KOFR"],
+    "min_cash_buffer": 0.0,
+    "parking_buy_threshold": 0.0
+  },
+  "tax": {
+    "annual_exemption_krw": 2500000.0,
+    "harvest_target_krw": 2350000.0,
+    "usd_krw_fallback": 1350.0
+  }
+}
