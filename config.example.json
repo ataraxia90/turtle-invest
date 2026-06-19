@@ -3,7 +3,9 @@
     "env": "dry-run",
     "timezone": "Asia/Seoul",
     "log_level": "INFO",
-    "database_path": "data/turtle_invest.db"
+    "database_path": "data/turtle_invest.db",
+    "database_provider": "sqlite",
+    "database_url_env": "DATABASE_URL"
   },
   "broker": {
     "provider": "kis",

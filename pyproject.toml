@@ -7,7 +7,9 @@ name = "turtle-invest"
 version = "0.1.0"
 description = "US large-cap turtle strategy portfolio automation with approval workflow."
 requires-python = ">=3.9"
-dependencies = []
+dependencies = [
+    "psycopg[binary]>=3.1",
+]
 
 [project.scripts]
 turtle-invest = "turtle_invest.cli:main"

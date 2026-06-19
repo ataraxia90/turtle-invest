@@ -8,7 +8,7 @@ from typing import Optional
 from turtle_invest.config import Settings, StrategyConfig
 from turtle_invest.market_data import fetch_daily_candles
 from turtle_invest.strategy import Candle, Position, SignalAction, StrategySignal, evaluate_symbol
-from turtle_invest.storage import SQLiteStore
+from turtle_invest.storage import create_store
 from turtle_invest.universe import active_universe
 
 
@@ -185,7 +185,7 @@ def max_drawdown(equity_curve: list[float]) -> float:
 
 def fetch_universe_candles(client, config: Settings) -> dict[str, list[Candle]]:
     candles_by_symbol: dict[str, list[Candle]] = {}
-    for member in active_universe(config, SQLiteStore(config.app.database_path)):
+    for member in active_universe(config, create_store(config)):
         candles_by_symbol[member.symbol] = fetch_daily_candles(client, member.symbol, member.exchange)
     return candles_by_symbol
 

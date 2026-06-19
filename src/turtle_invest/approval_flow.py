@@ -6,7 +6,7 @@ from typing import Optional
 
 from turtle_invest.config import Settings
 from turtle_invest.daily_plan import create_daily_plan, default_us_trade_date
-from turtle_invest.storage import SQLiteStore, StoredOrderCandidate
+from turtle_invest.storage import SQLiteStore, StoredOrderCandidate, create_store
 from turtle_invest.telegram import (
     ApprovalStatus,
     STRATEGY_PREFIX,
@@ -53,7 +53,7 @@ def request_approval(
             message=f"{STRATEGY_PREFIX}[{run_date}] 오늘 주문 후보가 없습니다.",
         )
 
-    store = SQLiteStore(config.app.database_path)
+    store = create_store(config)
     request_key = approval_request_state_key(run_date)
     if store.get_state(request_key):
         return ApprovalRequestResult(
@@ -79,7 +79,7 @@ def collect_approval(
     timeout: int = 0,
 ) -> ApprovalCollectResult:
     run_date = trade_date or default_us_trade_date()
-    store = SQLiteStore(config.app.database_path)
+    store = create_store(config)
     store.initialize()
     candidates = store.list_unapproved_order_candidates(run_date)
     return collect_status_for_candidates(
@@ -99,7 +99,7 @@ def collect_final_approval(
     timeout: int = 0,
 ) -> ApprovalCollectResult:
     run_date = trade_date or default_us_trade_date()
-    store = SQLiteStore(config.app.database_path)
+    store = create_store(config)
     store.initialize()
     candidates = store.list_final_unapproved_order_candidates(run_date)
     return collect_status_for_candidates(

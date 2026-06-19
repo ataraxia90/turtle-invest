@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from turtle_invest.config import ConfigError, mask_account, parse_settings
+from turtle_invest.storage import create_store
 
 
 def valid_config() -> dict:
@@ -47,6 +48,18 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(settings.strategy.max_units_per_symbol, 4)
         self.assertEqual(settings.strategy.symbols, ["AAPL", "MSFT"])
         self.assertEqual(settings.tax.annual_exemption_krw, 2_500_000)
+        self.assertEqual(settings.app.database_provider, "sqlite")
+        self.assertEqual(settings.app.database_url_env, "DATABASE_URL")
+
+    def test_parse_postgres_database_config(self) -> None:
+        config = valid_config()
+        config["app"]["database_provider"] = "postgres"
+        config["app"]["database_url_env"] = "SUPABASE_DATABASE_URL"
+
+        settings = parse_settings(config)
+
+        self.assertEqual(settings.app.database_provider, "postgres")
+        self.assertEqual(settings.app.database_url_env, "SUPABASE_DATABASE_URL")
 
     def test_rejects_missing_exchange_mapping(self) -> None:
         config = valid_config()
@@ -61,6 +74,22 @@ class ConfigTests(unittest.TestCase):
 
         with self.assertRaises(ConfigError):
             parse_settings(config)
+
+    def test_rejects_invalid_database_provider(self) -> None:
+        config = valid_config()
+        config["app"]["database_provider"] = "mysql"
+
+        with self.assertRaises(ConfigError):
+            parse_settings(config)
+
+    def test_postgres_store_requires_database_url_env(self) -> None:
+        config = valid_config()
+        config["app"]["database_provider"] = "postgres"
+        config["app"]["database_url_env"] = "MISSING_DATABASE_URL"
+        settings = parse_settings(config)
+
+        with self.assertRaises(RuntimeError):
+            create_store(settings)
 
     def test_rejects_invalid_risk_limit_percent(self) -> None:
         config = valid_config()

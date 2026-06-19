@@ -16,7 +16,7 @@ from turtle_invest.market_data import fetch_daily_candles
 from turtle_invest.orchestrator import DailyOrchestrator
 from turtle_invest.portfolio_sync import sync_overseas_balance
 from turtle_invest.risk_controls import RiskControlContext, apply_portfolio_risk_limits
-from turtle_invest.storage import SQLiteStore
+from turtle_invest.storage import SQLiteStore, create_store
 from turtle_invest.strategy import Position, StrategySignal, evaluate_symbol
 from turtle_invest.telegram import build_approval_message
 from turtle_invest.universe import active_universe
@@ -38,7 +38,7 @@ def create_daily_plan(
     trade_date: Optional[str] = None,
     equity_override: Optional[float] = None,
 ) -> DailyPlanResult:
-    store = SQLiteStore(config.app.database_path)
+    store = create_store(config)
     client = KISClient(config.broker)
     balance = sync_overseas_balance(client, store)
     total_equity = equity_override if equity_override is not None else balance.total_equity

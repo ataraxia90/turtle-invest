@@ -16,7 +16,7 @@ from turtle_invest.final_pretrade import FinalPreTradeReview, build_final_pretra
 from turtle_invest.market_calendar import default_us_trade_date, is_trading_day
 from turtle_invest.orchestrator import ExecutionResult, execute_final_approved_dry_run
 from turtle_invest.rollover import RolloverResult, rollover_pending_candidates
-from turtle_invest.storage import SQLiteStore
+from turtle_invest.storage import SQLiteStore, create_store
 from turtle_invest.broker.kis import KISClient
 from turtle_invest.telegram import TelegramClient
 
@@ -91,7 +91,7 @@ def run_final_pretrade(
         )
         return FinalPreTradeResult(trade_date=run_date, review=review, sent=False, final_collect=None)
 
-    store = SQLiteStore(config.app.database_path)
+    store = create_store(config)
     store.initialize()
     review = build_final_pretrade_review(
         config,
@@ -136,7 +136,7 @@ def run_market_close(
             message="Skipped: not a trading day.",
         )
         return MarketCloseResult(report_date=run_date, execution_results=[], close_report=close_report)
-    store = SQLiteStore(config.app.database_path)
+    store = create_store(config)
     store.initialize()
     execution_results = execute_final_approved_dry_run(store, run_date)
     close_report = create_close_report(
@@ -178,7 +178,7 @@ def run_post_market(
     rollover_result = None
     if rollover:
         rollover_result = rollover_pending_candidates(
-            SQLiteStore(config.app.database_path),
+            create_store(config),
             source_date=market_close.report_date,
             target_date=rollover_target_date,
         )

@@ -45,7 +45,7 @@ from turtle_invest.rehearsal import run_local_rehearsal
 from turtle_invest.rollover import rollover_pending_candidates
 from turtle_invest.safety import check_safety
 from turtle_invest.status import get_runtime_status
-from turtle_invest.storage import SQLiteStore
+from turtle_invest.storage import create_store
 from turtle_invest.strategy import Position, evaluate_symbol
 from turtle_invest.tax_harvest import build_tax_harvest_message, build_tax_harvest_report, parse_price_overrides
 from turtle_invest.telegram import TelegramClient, TelegramClientError
@@ -418,14 +418,14 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 0
 
     if args.command == "init-db":
-        store = SQLiteStore(config.app.database_path)
+        store = create_store(config)
         store.initialize()
-        print(f"database initialized: {config.app.database_path}")
+        print(f"database initialized: {config.app.database_provider}")
         return 0
 
     if args.command == "sync-balance":
         try:
-            result = sync_overseas_balance(KISClient(config.broker), SQLiteStore(config.app.database_path))
+            result = sync_overseas_balance(KISClient(config.broker), create_store(config))
         except KISClientError as exc:
             print(f"KIS error: {exc}", file=sys.stderr)
             return 1
@@ -524,7 +524,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 0
 
     if args.command == "refresh-universe":
-        store = SQLiteStore(config.app.database_path)
+        store = create_store(config)
         store.initialize()
         result = refresh_universe_from_config(
             config=config,
@@ -540,7 +540,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 0
 
     if args.command == "show-universe":
-        store = SQLiteStore(config.app.database_path)
+        store = create_store(config)
         store.initialize()
         if args.date:
             members = store.list_universe_members(args.date)
@@ -578,7 +578,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if args.command == "paper-init":
         account = initialize_paper_account(
-            SQLiteStore(config.app.database_path),
+            create_store(config),
             cash=args.cash,
             reset=args.reset,
         )
@@ -590,7 +590,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if args.command == "paper-status":
         try:
-            status = get_paper_status(config, SQLiteStore(config.app.database_path))
+            status = get_paper_status(config, create_store(config))
         except KISClientError as exc:
             print(f"Paper status error: {exc}", file=sys.stderr)
             return 1
@@ -609,7 +609,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         try:
             result = create_paper_daily_plan(
                 config,
-                SQLiteStore(config.app.database_path),
+                create_store(config),
                 trade_date=args.trade_date,
             )
         except KISClientError as exc:
@@ -631,7 +631,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         try:
             result = execute_paper_candidates(
                 config,
-                SQLiteStore(config.app.database_path),
+                create_store(config),
                 trade_date=args.trade_date,
             )
         except KISClientError as exc:
@@ -659,7 +659,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"trade_date={run_date}")
             print("skipped=market_not_open")
             return 0
-        store = SQLiteStore(config.app.database_path)
+        store = create_store(config)
         store.initialize()
         paper_run_state_key = f"paper_run_day_completed:{run_date}"
         if args.once_per_day and store.get_state(paper_run_state_key):
@@ -752,7 +752,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if args.command == "execute-approved":
         trade_date = args.trade_date or default_us_trade_date()
-        store = SQLiteStore(config.app.database_path)
+        store = create_store(config)
         store.initialize()
         if args.validate:
             try:
@@ -781,7 +781,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if args.command == "execute-final-approved":
         trade_date = args.trade_date or default_us_trade_date()
-        store = SQLiteStore(config.app.database_path)
+        store = create_store(config)
         store.initialize()
         results = execute_final_approved_dry_run(store, trade_date)
         print(f"trade_date={trade_date}")
@@ -792,7 +792,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if args.command == "execute-live-approved":
         trade_date = args.trade_date or default_us_trade_date()
-        store = SQLiteStore(config.app.database_path)
+        store = create_store(config)
         store.initialize()
         try:
             results = execute_final_approved_live_orders(
@@ -814,7 +814,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if args.command == "validate-approved":
         trade_date = args.trade_date or default_us_trade_date()
-        store = SQLiteStore(config.app.database_path)
+        store = create_store(config)
         try:
             review = build_final_pretrade_review(
                 config,
@@ -878,7 +878,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if args.command == "cash-plan":
         trade_date = args.trade_date or default_us_trade_date()
-        store = SQLiteStore(config.app.database_path)
+        store = create_store(config)
         store.initialize()
         client = KISClient(config.broker)
         try:
@@ -917,7 +917,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if args.command == "tax-harvest-report":
         year = args.year or int(default_us_trade_date()[:4])
-        store = SQLiteStore(config.app.database_path)
+        store = create_store(config)
         try:
             latest_prices = parse_price_overrides(args.price)
             report = build_tax_harvest_report(
@@ -1052,7 +1052,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 0
 
     if args.command == "rehearse-local":
-        result = run_local_rehearsal(SQLiteStore(config.app.database_path), args.trade_date)
+        result = run_local_rehearsal(create_store(config), args.trade_date)
         print(f"trade_date={result.trade_date}")
         print(f"idempotency_key={result.idempotency_key}")
         print(f"candidate_created={result.candidate_created}")
@@ -1063,7 +1063,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if args.command == "orders":
         trade_date = args.trade_date or default_us_trade_date()
-        store = SQLiteStore(config.app.database_path)
+        store = create_store(config)
         store.initialize()
         statuses = store.list_order_statuses(trade_date)
         print(f"trade_date={trade_date}")
@@ -1079,7 +1079,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if args.command == "rollover-pending":
         source_date = args.source_date or default_us_trade_date()
-        store = SQLiteStore(config.app.database_path)
+        store = create_store(config)
         result = rollover_pending_candidates(store, source_date=source_date, target_date=args.target_date)
         print(f"source_date={result.source_date}")
         print(f"target_date={result.target_date}")
@@ -1088,6 +1088,9 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 0
 
     if args.command == "backup-db":
+        if config.app.database_provider != "sqlite":
+            print("backup-db is only available for sqlite storage.", file=sys.stderr)
+            return 2
         result = backup_file(config.app.database_path, args.backup_dir)
         print(f"source={result.source}")
         print(f"destination={result.destination}")

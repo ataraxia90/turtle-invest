@@ -6,7 +6,7 @@ from typing import Optional
 from turtle_invest.config import Settings
 from turtle_invest.market_calendar import default_us_trade_date, is_trading_day, next_trading_day
 from turtle_invest.safety import SafetyStatus, check_safety
-from turtle_invest.storage import SQLiteStore
+from turtle_invest.storage import SQLiteStore, create_store
 
 
 @dataclass(frozen=True)
@@ -20,7 +20,7 @@ class RuntimeStatus:
 
 def get_runtime_status(config: Settings, trade_date: Optional[str] = None) -> RuntimeStatus:
     run_date = trade_date or default_us_trade_date()
-    store = SQLiteStore(config.app.database_path)
+    store = create_store(config)
     store.initialize()
     return RuntimeStatus(
         trade_date=run_date,
@@ -42,6 +42,6 @@ def count_tables(store: SQLiteStore) -> dict[str, int]:
     ]
     with store.connect() as connection:
         return {
-            table: int(connection.execute(f"SELECT count(*) FROM {table}").fetchone()[0])
+            table: int(row[0] if not isinstance(row := connection.execute(f"SELECT count(*) FROM {table}").fetchone(), dict) else row["count"])
             for table in tables
         }

@@ -16,6 +16,8 @@ class AppConfig:
     timezone: str
     log_level: str
     database_path: str = "data/turtle_invest.db"
+    database_provider: str = "sqlite"
+    database_url_env: str = "DATABASE_URL"
 
 
 @dataclass(frozen=True)
@@ -153,6 +155,8 @@ def parse_settings(raw: dict[str, Any]) -> Settings:
 def validate_settings(settings: Settings) -> None:
     if settings.app.env not in {"dry-run", "paper", "live"}:
         raise ConfigError("app.env must be one of: dry-run, paper, live")
+    if settings.app.database_provider not in {"sqlite", "postgres"}:
+        raise ConfigError("app.database_provider must be one of: sqlite, postgres")
     if settings.broker.mode not in {"paper", "live"}:
         raise ConfigError("broker.mode must be one of: paper, live")
     if not 0 < settings.strategy.risk_per_trade <= 0.05:

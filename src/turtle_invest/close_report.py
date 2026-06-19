@@ -8,7 +8,7 @@ from typing import Any, Optional
 from turtle_invest.broker.kis import KISClient
 from turtle_invest.config import Settings
 from turtle_invest.daily_plan import default_us_trade_date
-from turtle_invest.storage import SQLiteStore
+from turtle_invest.storage import SQLiteStore, create_store
 from turtle_invest.telegram import TelegramClient, build_close_report
 
 
@@ -50,7 +50,7 @@ def create_close_report(
     failed: list[dict[str, Any]] = []
     message = build_close_report(run_date, filled=filled, pending=pending, failed=failed)
 
-    store = SQLiteStore(config.app.database_path)
+    store = create_store(config)
     store.initialize()
     reconciliation = reconcile_submitted_order_events(store, run_date, filled, pending)
     local_events = [
