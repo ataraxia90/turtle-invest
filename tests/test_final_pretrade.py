@@ -54,7 +54,8 @@ class FinalPreTradeTests(unittest.TestCase):
 
         self.assertEqual(review.validations, [])
         self.assertFalse(review.cash_plan_included)
-        self.assertIn("최종 사전검증 대상이 없습니다", review.message)
+        self.assertIn("<b>[터틀] 최종 사전검증</b>", review.message)
+        self.assertIn("상태: 검증 대상 없음", review.message)
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ from turtle_invest.broker.kis import KISClient
 from turtle_invest.config import Settings
 from turtle_invest.daily_plan import default_us_trade_date
 from turtle_invest.storage import SQLiteStore, create_store
-from turtle_invest.telegram import TelegramClient, build_close_report
+from turtle_invest.telegram import TelegramClient, build_close_report, html_code, html_text
 
 
 @dataclass(frozen=True)
@@ -108,9 +108,12 @@ def has_meaningful_value(row: dict[str, Any]) -> bool:
 
 
 def append_local_events_summary(message: str, local_events: list[dict[str, Any]]) -> str:
-    lines = [message, "", f"로컬 실행 이벤트: {len(local_events)}"]
-    for event in local_events:
-        lines.append(f"- {event.get('status')} {event.get('idempotency_key')}")
+    lines = [message, "", "<b>로컬 실행 이벤트</b>", f"총 {len(local_events)}건"]
+    for index, event in enumerate(local_events, start=1):
+        lines.append(
+            f"{index}. {html_text(event.get('status', '-'))} "
+            f"{html_code(event.get('idempotency_key', '-'))}"
+        )
     return "\n".join(lines)
 
 

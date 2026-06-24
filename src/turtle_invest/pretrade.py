@@ -6,7 +6,7 @@ from typing import Optional
 from turtle_invest.market_data import fetch_daily_candles
 from turtle_invest.portfolio_sync import BalanceSyncResult, sync_overseas_balance
 from turtle_invest.storage import SQLiteStore, StoredOrderCandidate
-from turtle_invest.telegram import STRATEGY_PREFIX
+from turtle_invest.telegram import STRATEGY_PREFIX, format_amount, html_code, html_text
 
 
 @dataclass(frozen=True)
@@ -82,28 +82,42 @@ def validate_candidates(
 
 def build_pretrade_review_message(trade_date: str, validations: list[PreTradeValidation]) -> str:
     if not validations:
-        return f"{STRATEGY_PREFIX}[{trade_date}] 최종 사전검증 대상이 없습니다."
+        return "\n".join(
+            [
+                f"<b>{html_text(STRATEGY_PREFIX)} 최종 사전검증</b>",
+                html_code(trade_date),
+                "",
+                "<b>요약</b>",
+                "상태: 검증 대상 없음",
+            ]
+        )
 
     ok_count = len([validation for validation in validations if validation.ok])
     total_notional = sum(validation.notional for validation in validations if validation.ok)
     lines = [
-        f"{STRATEGY_PREFIX}[{trade_date}] 최종 사전검증",
-        f"검증 통과: {ok_count}/{len(validations)}",
-        f"실행 가능 금액: {total_notional:.2f}",
+        f"<b>{html_text(STRATEGY_PREFIX)} 최종 사전검증</b>",
+        html_code(trade_date),
         "",
-        "실주문 실행이 명시적으로 활성화된 경우에만 최종 승인하세요.",
+        "<b>요약</b>",
+        f"검증 통과: {ok_count}/{len(validations)}",
+        f"실행 가능 금액: {format_amount(total_notional)}",
+        "주의: 실주문 실행이 명시적으로 활성화된 경우에만 최종 승인",
         "",
     ]
-    for validation in validations:
+    for index, validation in enumerate(validations, start=1):
         status = "통과" if validation.ok else "차단"
         lines.extend(
             [
-                f"{status} {validation.candidate.symbol} {validation.candidate.action}",
-                f"  수량: {validation.candidate.quantity}",
-                f"  최신가: {format_optional_float(validation.latest_price)}",
-                f"  승인 기준가: {format_optional_float(validation.approved_price)}",
-                f"  금액: {validation.notional:.2f}",
-                f"  메시지: {validation.message}",
+                f"<b>검증 {index}</b>",
+                f"상태: {status}",
+                f"종목: {html_code(validation.candidate.symbol)}",
+                f"동작: {html_text(validation.candidate.action)}",
+                f"수량: {validation.candidate.quantity}",
+                f"최신가: {html_text(format_optional_float(validation.latest_price))}",
+                f"승인 기준가: {html_text(format_optional_float(validation.approved_price))}",
+                f"금액: {format_amount(validation.notional)}",
+                f"메시지: {html_text(validation.message)}",
+                "",
             ]
         )
     return "\n".join(lines)

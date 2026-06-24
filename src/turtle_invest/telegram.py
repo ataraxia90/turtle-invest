@@ -7,6 +7,7 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from enum import Enum
+from html import escape
 from typing import Any, Optional, Protocol
 
 from turtle_invest.config import TelegramConfig
@@ -126,27 +127,51 @@ class TelegramClient:
 def build_approval_message(trade_date: str, signals: list[StrategySignal]) -> str:
     executable = [signal for signal in signals if signal.quantity > 0]
     if not executable:
-        return f"{STRATEGY_PREFIX}[{trade_date}] 오늘 주문 후보가 없습니다."
+        return "\n".join(
+            [
+                f"<b>{html_text(STRATEGY_PREFIX)} 주문 승인 요청</b>",
+                html_code(trade_date),
+                "",
+                "<b>요약</b>",
+                "상태: 주문 후보 없음",
+            ]
+        )
 
+    buy_notional = sum(signal.quantity * signal.reference_price for signal in executable if signal.action.value == "BUY")
+    sell_notional = sum(signal.quantity * signal.reference_price for signal in executable if signal.action.value == "SELL")
     lines = [
-        f"{STRATEGY_PREFIX}[{trade_date}] 장전 주문 승인 요청",
+        f"<b>{html_text(STRATEGY_PREFIX)} 주문 승인 요청</b>",
+        html_code(trade_date),
         "",
-        "응답: 승인/yes, 거절/no, 보류/hold",
+        "<b>요약</b>",
+        f"후보: {len(executable)}건",
+        f"예상 매수금액: {format_amount(buy_notional)}",
+        f"예상 매도금액: {format_amount(sell_notional)}",
+        f"현금 영향: {format_amount(sell_notional - buy_notional)}",
         "",
+        "<b>응답</b>",
+        f"승인: {html_code('yes')}",
+        f"거절: {html_code('no')}",
+        f"보류: {html_code('hold')}",
     ]
     for index, signal in enumerate(executable, start=1):
         atr = "-" if signal.atr is None else f"{signal.atr:.4f}"
         threshold = "-" if signal.threshold is None else f"{signal.threshold:.2f}"
+        notional = signal.quantity * signal.reference_price
         lines.extend(
             [
-                f"{index}. {signal.symbol} {signal.action.value}",
-                f"   거래소: {signal.exchange or '-'}",
-                f"   수량: {signal.quantity}",
-                f"   사유: {signal.reason.value}",
-                f"   기준가: {signal.reference_price:.2f}",
-                f"   ATR: {atr}",
-                f"   기준선: {threshold}",
-                f"   주문 후 유닛: {signal.units_after}",
+                "",
+                f"<b>후보 {index}</b>",
+                f"종목: {html_code(signal.symbol)}",
+                f"동작: {html_text(signal.action.value)}",
+                f"수량: {signal.quantity}",
+                f"기준가: {format_amount(signal.reference_price)}",
+                f"금액: {format_amount(notional)}",
+                f"거래소: {html_text(signal.exchange or '-')}",
+                f"사유: {html_text(signal.reason.value)}",
+                f"ATR: {html_text(atr)}",
+                f"기준선: {html_text(threshold)}",
+                f"주문 후 유닛: {signal.units_after}",
             ]
         )
     return "\n".join(lines)
@@ -159,22 +184,60 @@ def build_close_report(
     failed: list[dict[str, Any]],
 ) -> str:
     lines = [
-        f"{STRATEGY_PREFIX}[{report_date}] 장마감 보고",
+        f"<b>{html_text(STRATEGY_PREFIX)} 장마감 보고</b>",
+        html_code(report_date),
+        "",
+        "<b>요약</b>",
         f"체결: {len(filled)}",
         f"미체결: {len(pending)}",
         f"실패: {len(failed)}",
     ]
+    if filled:
+        lines.append("")
+        lines.append("<b>체결</b>")
+        for index, item in enumerate(filled, start=1):
+            lines.append(f"{index}. {html_text(order_summary(item))}")
     if pending:
         lines.append("")
-        lines.append("다음 거래일 재평가 대상:")
-        for item in pending:
-            lines.append(f"- {item.get('symbol')} {item.get('action')} {item.get('quantity')}")
+        lines.append("<b>다음 거래일 재평가 대상</b>")
+        for index, item in enumerate(pending, start=1):
+            lines.append(f"{index}. {html_text(order_summary(item))}")
     if failed:
         lines.append("")
-        lines.append("실패 주문:")
-        for item in failed:
-            lines.append(f"- {item.get('symbol')} {item.get('reason', 'unknown')}")
+        lines.append("<b>실패 주문</b>")
+        for index, item in enumerate(failed, start=1):
+            lines.append(f"{index}. {html_text(order_summary(item, include_reason=True))}")
     return "\n".join(lines)
+
+
+def html_text(value: Any) -> str:
+    return escape(str(value), quote=False)
+
+
+def html_code(value: Any) -> str:
+    return f"<code>{html_text(value)}</code>"
+
+
+def format_amount(value: float) -> str:
+    return f"{value:,.2f}"
+
+
+def order_summary(item: dict[str, Any], include_reason: bool = False) -> str:
+    symbol = first_present(item, ["symbol", "pdno", "ovrs_pdno", "symb"]) or "-"
+    action = first_present(item, ["action", "side", "sll_buy_dvsn_name", "sll_buy_dvsn_cd"]) or "-"
+    quantity = first_present(item, ["quantity", "qty", "ord_qty", "ft_ccld_qty"]) or "-"
+    parts = [str(symbol), str(action), str(quantity)]
+    if include_reason:
+        parts.append(str(first_present(item, ["reason", "message", "error"]) or "unknown"))
+    return " ".join(parts)
+
+
+def first_present(item: dict[str, Any], keys: list[str]) -> Any:
+    for key in keys:
+        value = item.get(key)
+        if value not in (None, ""):
+            return value
+    return None
 
 
 def parse_approval_response(text: str) -> ApprovalStatus:

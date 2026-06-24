@@ -182,8 +182,9 @@ class CashManagementTests(unittest.TestCase):
 
         message = format_cash_plan(plan)
 
-        self.assertIn("[터틀] 현금 관리 계획", message)
-        self.assertIn("조치: 없음", message)
+        self.assertIn("<b>[터틀] 현금 점검</b>", message)
+        self.assertIn("<b>요약</b>", message)
+        self.assertIn("필요 조치: 없음", message)
 
     def test_parking_quantity_for_config_uses_first_held_etf(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

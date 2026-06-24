@@ -12,7 +12,7 @@ from turtle_invest.orchestrator import DailyOrchestrator, make_idempotency_key
 from turtle_invest.risk_controls import RiskControlContext, apply_portfolio_risk_limits
 from turtle_invest.storage import SQLiteStore, StoredOrderCandidate
 from turtle_invest.strategy import Position, SignalAction, StrategySignal, evaluate_symbol
-from turtle_invest.telegram import STRATEGY_PREFIX, build_approval_message
+from turtle_invest.telegram import STRATEGY_PREFIX, build_approval_message, format_amount, html_code, html_text
 from turtle_invest.universe import active_universe
 
 
@@ -282,28 +282,37 @@ def build_paper_report_message(plan: PaperPlanResult, execution: PaperExecutionR
     filled = [item for item in execution.executions if item.status == "PAPER_FILLED"]
     blocked = [item for item in execution.executions if item.status != "PAPER_FILLED"]
     lines = [
-        f"{STRATEGY_PREFIX}[{plan.trade_date}] 모의투자 사후보고",
-        f"시작 현금: {plan.cash:.2f}",
-        f"시작 평가자산: {plan.total_equity:.2f}",
-        f"신호: {len(plan.signals)}",
-        f"실행 대상 신호: {len(actionable)}",
-        f"모의 체결 시도: {len(execution.executions)}",
+        f"<b>{html_text(STRATEGY_PREFIX)} 모의투자 일일 보고</b>",
+        html_code(plan.trade_date),
+        "",
+        "<b>요약</b>",
+        "상태: 정상 종료",
+        f"실행 대상: {len(actionable)}건",
         f"체결: {len(filled)}",
         f"차단: {len(blocked)}",
-        f"종료 현금: {execution.cash:.2f}",
-        f"종료 평가자산: {execution.total_equity:.2f}",
+        f"평가자산: {format_amount(execution.total_equity)}",
+        f"현금: {format_amount(execution.cash)}",
+        "",
+        "<b>신호</b>",
+        f"전체 신호: {len(plan.signals)}",
+        f"매수/매도 후보: {len(actionable)}",
     ]
     if execution.executions:
         lines.append("")
-        lines.append("모의 체결 내역:")
-        for item in execution.executions:
-            lines.append(
-                f"- {item.status} {item.symbol} {item.action} "
-                f"수량={item.quantity} 가격={item.price:.2f} 금액={item.notional:.2f}"
+        lines.append("<b>체결 내역</b>")
+        for index, item in enumerate(execution.executions, start=1):
+            lines.extend(
+                [
+                    f"{index}. {html_code(item.symbol)} {html_text(item.action)} {item.quantity}주",
+                    f"가격: {format_amount(item.price)}",
+                    f"금액: {format_amount(item.notional)}",
+                    f"상태: {html_text(item.status)}",
+                ]
             )
     else:
         lines.append("")
-        lines.append("모의 체결 없음.")
+        lines.append("<b>체결 내역</b>")
+        lines.append("없음")
     return "\n".join(lines)
 
 

@@ -161,8 +161,10 @@ class PaperTradingTests(unittest.TestCase):
 
             message = build_paper_report_message(plan, execution)
 
-        self.assertIn("[터틀][2026-06-15] 모의투자 사후보고", message)
-        self.assertIn("종료 평가자산", message)
+        self.assertIn("<b>[터틀] 모의투자 일일 보고</b>", message)
+        self.assertIn("<code>2026-06-15</code>", message)
+        self.assertIn("<b>요약</b>", message)
+        self.assertIn("평가자산", message)
 
     def test_run_paper_day_sends_report_when_requested(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -180,7 +182,7 @@ class PaperTradingTests(unittest.TestCase):
 
         self.assertTrue(result.sent)
         self.assertEqual(send.call_count, 1)
-        self.assertIn("[터틀][2026-06-15] 모의투자 사후보고", send.call_args[0][0])
+        self.assertIn("<b>[터틀] 모의투자 일일 보고</b>", send.call_args[0][0])
 
 
 if __name__ == "__main__":

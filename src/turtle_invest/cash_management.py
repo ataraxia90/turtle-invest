@@ -8,7 +8,7 @@ from turtle_invest.config import CashConfig
 from turtle_invest.pretrade import PreTradeValidation
 from turtle_invest.storage import SQLiteStore
 from turtle_invest.strategy import StrategySignal
-from turtle_invest.telegram import STRATEGY_PREFIX
+from turtle_invest.telegram import STRATEGY_PREFIX, format_amount, html_code, html_text
 
 
 @dataclass(frozen=True)
@@ -157,25 +157,31 @@ def build_cash_plan_from_amounts(
 
 def format_cash_plan(plan: CashPlan) -> str:
     lines = [
-        f"{STRATEGY_PREFIX} 현금 관리 계획",
-        f"현금: {plan.cash:.2f}",
-        f"승인 매수 금액: {plan.required_buy_notional:.2f}",
-        f"승인 매도 금액: {plan.sell_notional:.2f}",
-        f"승인 주문 후 가용 현금: {plan.available_after_approved_orders:.2f}",
-        f"파킹 ETF: {plan.primary_parking_etf}",
+        f"<b>{html_text(STRATEGY_PREFIX)} 현금 점검</b>",
+        "",
+        "<b>요약</b>",
+        f"현재 현금: {format_amount(plan.cash)}",
+        f"승인 매수금액: {format_amount(plan.required_buy_notional)}",
+        f"승인 매도금액: {format_amount(plan.sell_notional)}",
+        f"주문 후 예상 현금: {format_amount(plan.available_after_approved_orders)}",
+        "",
+        "<b>Parking ETF</b>",
+        f"대표 ETF: {html_code(plan.primary_parking_etf)}",
         f"파킹 ETF 수량: {plan.parking_quantity}",
-        f"파킹 ETF 가격: {format_optional_price(plan.parking_price)}",
-        f"메시지: {plan.message}",
+        f"파킹 ETF 가격: {html_text(format_optional_price(plan.parking_price))}",
+        f"판단: {html_text(plan.message)}",
     ]
     if not plan.actions:
-        lines.append("조치: 없음")
+        lines.append("필요 조치: 없음")
         return "\n".join(lines)
 
-    lines.append("조치:")
-    for action in plan.actions:
+    lines.append("")
+    lines.append("<b>필요 조치</b>")
+    for index, action in enumerate(plan.actions, start=1):
         lines.append(
-            f"- {action.action} {action.symbol} 수량={action.quantity} "
-            f"가격={action.estimated_price:.2f} 금액={action.notional:.2f} 사유={action.reason}"
+            f"{index}. {html_code(action.symbol)} {html_text(action.action)} "
+            f"{action.quantity}주 / 가격 {format_amount(action.estimated_price)} / "
+            f"금액 {format_amount(action.notional)} / 사유 {html_text(action.reason)}"
         )
     return "\n".join(lines)
 

@@ -86,8 +86,9 @@ class TaxHarvestTests(unittest.TestCase):
             report = build_tax_harvest_report(settings(db_path), store, year=2026, latest_prices={}, usd_krw=1000)
             message = build_tax_harvest_message(report)
 
-        self.assertIn("[터틀][세금][2026]", message)
-        self.assertIn("해외주식 기본공제 활용 리포트", message)
+        self.assertIn("<b>[터틀] 세금 점검</b>", message)
+        self.assertIn("<code>2026</code>", message)
+        self.assertIn("<b>요약</b>", message)
 
     def test_parse_price_overrides(self) -> None:
         self.assertEqual(parse_price_overrides(["brk/b=500.5"]), {"BRK/B": 500.5})

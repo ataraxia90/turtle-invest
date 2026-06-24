@@ -8,7 +8,7 @@ from typing import Any, Optional
 from turtle_invest.config import Settings
 from turtle_invest.market_data import fetch_daily_candles
 from turtle_invest.storage import SQLiteStore
-from turtle_invest.telegram import STRATEGY_PREFIX
+from turtle_invest.telegram import STRATEGY_PREFIX, format_amount, html_code, html_text
 
 
 @dataclass(frozen=True)
@@ -189,30 +189,36 @@ def fetch_latest_prices(config: Settings, lots: list[TaxLot]) -> dict[str, float
 
 
 def build_tax_harvest_message(report: TaxHarvestReport) -> str:
+    actionable = [item for item in report.candidates if item.suggested_quantity > 0]
     lines = [
-        f"{STRATEGY_PREFIX}[세금][{report.year}] 해외주식 기본공제 활용 리포트",
-        f"적용 환율: {report.usd_krw:.2f} KRW/USD",
+        f"<b>{html_text(STRATEGY_PREFIX)} 세금 점검</b>",
+        html_code(report.year),
+        "",
+        "<b>요약</b>",
+        f"적용 환율: {format_amount(report.usd_krw)} KRW/USD",
         f"연간 기본공제: {report.annual_exemption_krw:,.0f}원",
         f"운영 목표: {report.target_krw:,.0f}원",
         f"올해 실현손익: {report.realized_gain_krw:,.0f}원",
         f"목표까지 여유: {report.remaining_target_krw:,.0f}원",
         f"보유 lot: {len(report.open_lots)}",
-        f"후보: {len([item for item in report.candidates if item.suggested_quantity > 0])}",
+        f"후보: {len(actionable)}",
     ]
-    if report.candidates:
+    if actionable:
         lines.append("")
-        lines.append("수익실현 후보:")
-        for item in report.candidates:
+        lines.append("<b>수익실현 후보</b>")
+        for index, item in enumerate(actionable, start=1):
             lines.append(
-                f"- {item.symbol} 보유 {item.quantity}주, 후보 {item.suggested_quantity}주, "
-                f"예상 실현이익 {item.suggested_gain_krw:,.0f}원 "
-                f"(현재가 {item.price_usd:.2f}, 원가 {item.cost_basis_usd:.2f})"
+                f"{index}. {html_code(item.symbol)} 보유 {item.quantity}주 / "
+                f"후보 {item.suggested_quantity}주 / 예상 실현이익 {item.suggested_gain_krw:,.0f}원"
             )
+            lines.append(f"현재가 {format_amount(item.price_usd)} / 원가 {format_amount(item.cost_basis_usd)}")
     else:
         lines.append("")
-        lines.append("수익 중인 하베스팅 후보가 없습니다.")
+        lines.append("<b>수익실현 후보</b>")
+        lines.append("없음")
     lines.append("")
-    lines.append("주의: 세금 계산은 리포트용 추정치입니다. 실제 신고는 증권사 세무자료와 세무 전문가 기준으로 확인하세요.")
+    lines.append("<b>주의</b>")
+    lines.append("세금 계산은 리포트용 추정치입니다. 실제 신고와 증권사 세무자료는 별도로 확인하세요.")
     return "\n".join(lines)
 
 

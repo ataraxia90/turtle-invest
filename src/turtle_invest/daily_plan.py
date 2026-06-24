@@ -156,6 +156,7 @@ def append_cash_plan_message(approval_message: str, cash_plan_message: str) -> s
         not cash_plan_message
         or "No order candidates today." in approval_message
         or "오늘 주문 후보가 없습니다." in approval_message
+        or "상태: 주문 후보 없음" in approval_message
     ):
         return approval_message
     return f"{approval_message}\n\n{cash_plan_message}"

@@ -24,7 +24,8 @@ class CloseReportTests(unittest.TestCase):
             [{"status": "DRY_RUN", "idempotency_key": "2026-06-11:AAPL:BUY:ENTRY_BREAKOUT:1"}],
         )
 
-        self.assertIn("로컬 실행 이벤트: 1", message)
+        self.assertIn("<b>로컬 실행 이벤트</b>", message)
+        self.assertIn("총 1건", message)
         self.assertIn("DRY_RUN", message)
 
     def test_matches_broker_row_by_order_id(self) -> None:

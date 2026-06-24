@@ -52,8 +52,11 @@ class TelegramTests(unittest.TestCase):
 
         message = build_approval_message("2026-06-11", [signal])
 
-        self.assertIn("[터틀][2026-06-11] 장전 주문 승인 요청", message)
-        self.assertIn("AAPL BUY", message)
+        self.assertIn("<b>[터틀] 주문 승인 요청</b>", message)
+        self.assertIn("<code>2026-06-11</code>", message)
+        self.assertIn("<b>요약</b>", message)
+        self.assertIn("종목: <code>AAPL</code>", message)
+        self.assertIn("동작: BUY", message)
         self.assertIn("거래소: NASD", message)
         self.assertIn("수량: 10", message)
         self.assertIn("ENTRY_BREAKOUT", message)
@@ -66,9 +69,10 @@ class TelegramTests(unittest.TestCase):
             failed=[],
         )
 
-        self.assertIn("[터틀][2026-06-11] 장마감 보고", message)
+        self.assertIn("<b>[터틀] 장마감 보고</b>", message)
+        self.assertIn("<code>2026-06-11</code>", message)
         self.assertIn("미체결: 1", message)
-        self.assertIn("다음 거래일 재평가 대상", message)
+        self.assertIn("<b>다음 거래일 재평가 대상</b>", message)
 
     def test_send_message_uses_bot_token_and_chat_id(self) -> None:
         os.environ["TELEGRAM_BOT_TOKEN"] = "token"

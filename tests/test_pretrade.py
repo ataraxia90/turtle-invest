@@ -92,14 +92,17 @@ class PreTradeTests(unittest.TestCase):
 
         message = build_pretrade_review_message("2026-06-11", [validation])
 
-        self.assertIn("[터틀][2026-06-11] 최종 사전검증", message)
+        self.assertIn("<b>[터틀] 최종 사전검증</b>", message)
+        self.assertIn("<code>2026-06-11</code>", message)
         self.assertIn("검증 통과: 1/1", message)
-        self.assertIn("통과 AAPL BUY", message)
+        self.assertIn("종목: <code>AAPL</code>", message)
+        self.assertIn("동작: BUY", message)
 
     def test_build_pretrade_review_message_empty(self) -> None:
         message = build_pretrade_review_message("2026-06-11", [])
 
-        self.assertIn("최종 사전검증 대상이 없습니다", message)
+        self.assertIn("<b>[터틀] 최종 사전검증</b>", message)
+        self.assertIn("상태: 검증 대상 없음", message)
 
     def test_format_optional_float(self) -> None:
         self.assertEqual(format_optional_float(None), "-")
