@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import os
+import tempfile
 import unittest
 
-from turtle_invest.config import ConfigError, mask_account, parse_settings
+from turtle_invest.config import ConfigError, load_env_file, mask_account, parse_settings
 from turtle_invest.storage import create_store
 
 
@@ -100,6 +102,41 @@ class ConfigTests(unittest.TestCase):
 
     def test_masks_account_number(self) -> None:
         self.assertEqual(mask_account("1234567890"), "******7890")
+
+    def test_load_env_file_sets_missing_environment_values(self) -> None:
+        original = os.environ.pop("TURTLE_TEST_ENV", None)
+        try:
+            with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False) as file:
+                file.write("TURTLE_TEST_ENV='secret-value'\n")
+                path = file.name
+
+            load_env_file(path)
+
+            self.assertEqual(os.environ["TURTLE_TEST_ENV"], "secret-value")
+        finally:
+            if original is None:
+                os.environ.pop("TURTLE_TEST_ENV", None)
+            else:
+                os.environ["TURTLE_TEST_ENV"] = original
+            os.unlink(path)
+
+    def test_load_env_file_does_not_override_existing_environment_values(self) -> None:
+        original = os.environ.get("TURTLE_TEST_ENV")
+        os.environ["TURTLE_TEST_ENV"] = "existing"
+        try:
+            with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False) as file:
+                file.write("TURTLE_TEST_ENV=new\n")
+                path = file.name
+
+            load_env_file(path)
+
+            self.assertEqual(os.environ["TURTLE_TEST_ENV"], "existing")
+        finally:
+            if original is None:
+                os.environ.pop("TURTLE_TEST_ENV", None)
+            else:
+                os.environ["TURTLE_TEST_ENV"] = original
+            os.unlink(path)
 
 
 if __name__ == "__main__":
