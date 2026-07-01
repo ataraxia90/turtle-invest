@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Union
@@ -117,6 +118,8 @@ class Settings:
 
 
 def load_config(path: Union[str, Path]) -> Settings:
+    load_env_file()
+
     config_path = Path(path)
     if not config_path.exists():
         fallback = Path("config.example.json")
@@ -131,6 +134,36 @@ def load_config(path: Union[str, Path]) -> Settings:
         raise ConfigError(f"invalid JSON in {config_path}: {exc}") from exc
 
     return parse_settings(raw)
+
+
+def load_env_file(path: Union[str, Path] = ".env") -> None:
+    env_path = Path(path)
+    if not env_path.exists():
+        return
+
+    for line_number, raw_line in enumerate(env_path.read_text(encoding="utf-8").splitlines(), start=1):
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export ") :].strip()
+        if "=" not in line:
+            raise ConfigError(f"invalid .env line {line_number}: expected KEY=VALUE")
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key or not key.replace("_", "").isalnum() or key[0].isdigit():
+            raise ConfigError(f"invalid .env key on line {line_number}: {key}")
+
+        parsed_value = parse_env_value(value.strip())
+        if parsed_value:
+            os.environ.setdefault(key, parsed_value)
+
+
+def parse_env_value(value: str) -> str:
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        return value[1:-1]
+    return value
 
 
 def parse_settings(raw: dict[str, Any]) -> Settings:
